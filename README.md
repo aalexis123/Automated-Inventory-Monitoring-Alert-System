@@ -64,3 +64,7 @@ Add `assets/n8n-workflow.png`, `assets/alert-email-redacted.png`, and `assets/ex
 
 ## Interview summary
 > I built an inventory monitoring workflow that uses Python and Pandas to validate and classify stock, Google Sheets to store the processed inventory, and n8n to schedule Gmail alerts, prevent duplicate notifications, and reset alert flags after restocking. I also created an inventory reporting dashboard and documented how to recreate it in Power BI.
+
+<img width="1750" height="772" alt="image" src="https://github.com/user-attachments/assets/b20e7684-7903-4f0e-b21a-db8b0d057892" />
+
+
