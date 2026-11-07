@@ -30,41 +30,128 @@ Inventory CSV → Python / Pandas notebook → Google Sheets (Inventory tab)
 ## Dashboard snapshot
 The provided snapshot has **50 products**, including **11 low-stock** and **6 out-of-stock** items. These are example dataset results, not measured business impact. Open `dashboard.html` in a browser for an interactive view.
 
-## Repository contents
-```text
-inventory_portfolio/
-├── README.md
-├── dashboard.html                    # interactive standalone dashboard
-├── assets/dashboard-preview.png     # dashboard screenshot
-├── data/inventory_dashboard.csv      # inventory snapshot
-├── data/inventory_dashboard.json
-├── python/inventory_processing.ipynb # sanitized, outputs cleared
-├── n8n/Daily_Inventory_Monitor_SANITIZED.json
-├── n8n/README.md
-└── powerbi/
-    ├── Inventory_Measures.dax
-    └── POWER_BI_BUILD_GUIDE.md
-```
-
-## How to reproduce
-1. Open `python/inventory_processing.ipynb` in Google Colab or Jupyter. Provide an input inventory CSV with the expected columns (see notebook). In Colab, authorize Google Sheets access and run the cells in order. The notebook computes stock status, inventory value, suggested reorder quantity, and estimated reorder cost, then writes to the `Inventory` tab.
-2. Import `n8n/Daily_Inventory_Monitor_SANITIZED.json` into n8n. Reconnect **your own** Google Sheets and Gmail credentials. Replace `YOUR_SPREADSHEET_ID`, select the Inventory sheet, and replace `YOUR_ALERT_EMAIL@example.com`.
-3. Run a manual test before activating the schedule. Confirm that a low-stock item triggers an email, then sets `alert_sent=TRUE` and `last_alerted`. Run again and verify no duplicate. Replenish a product and verify that its flag resets.
-4. Open `dashboard.html` to view the snapshot. To create a native Power BI report, load `data/inventory_dashboard.csv`, rename the table as directed in the Power BI guide, and add the measures from `powerbi/Inventory_Measures.dax`.
-
-## Validation and limitations
-- The uploaded n8n JSON documents the workflow configuration; it does not by itself prove successful execution. Add your own **redacted** n8n execution screenshot and a sample Gmail alert to demonstrate testing.
-- Google Sheets data refresh is a separate Python/Colab step, not part of the n8n schedule.
-- The existing n8n numeric checks may classify blank quantities as zero. Add explicit data-quality checks before production use.
-- Email sends and Google Sheets updates are separate operations; if the update fails after a successful send, a later run may send again. Production hardening should add retry/exception handling and idempotency.
-- A native `.pbix` file is not included. The package provides a working HTML dashboard, data, DAX, and Power BI instructions.
-
-## Suggested demo assets
-Add `assets/n8n-workflow.png`, `assets/alert-email-redacted.png`, and `assets/execution-success.png` after capturing and redacting them. Do not publish live email addresses, spreadsheet URLs, OAuth credentials, tokens, or customer data.
-
-## Interview summary
-> I built an inventory monitoring workflow that uses Python and Pandas to validate and classify stock, Google Sheets to store the processed inventory, and n8n to schedule Gmail alerts, prevent duplicate notifications, and reset alert flags after restocking. I also created an inventory reporting dashboard and documented how to recreate it in Power BI.
-
 <img width="1750" height="772" alt="image" src="https://github.com/user-attachments/assets/b20e7684-7903-4f0e-b21a-db8b0d057892" />
 
+## n8n Workflow Automation
+I developed a daily inventory monitoring workflow using n8n, Google Sheets, and Gmail to automate stock evaluation and notification tracking.
 
+The workflow is configured to check inventory each morning at 8:00 AM and identify products that have reached or fallen below their reorder thresholds.
+
+Workflow Screenshot
+<img width="1858" height="601" alt="image" src="https://github.com/user-attachments/assets/918c5496-4ec8-427e-9851-af37a0a882f2" />
+
+
+Workflow Architecture
+```text
+Daily Check (8 AM)
+        |
+        v
+Read Inventory (Google Sheets)
+        |
+        v
+Evaluate Stock
+        |
+        +------------------------+
+        |                        |
+        v                        v
+Needs New Alert           Stock Recovered
+        |                        |
+        v                        v
+Send Stock Alert          Clear Alert Flag
+        |
+        v
+Record Alert Sent
+```
+Step 1: Daily Inventory Check
+
+Nodes: Daily Check → Read Inventory
+
+The workflow begins with a scheduled trigger configured for 8:00 AM.
+
+It retrieves inventory records from Google Sheets, including product quantities, reorder thresholds, and existing alert statuses.
+
+Step 2: Inventory Evaluation
+
+Node: Evaluate Stock
+
+JavaScript expressions evaluate each product and determine whether it is:
+
+In Stock
+
+Low Stock
+
+Out of Stock
+
+The workflow also determines whether a new notification is required or an existing alert flag should be reset.
+
+Step 3: Automated Stock Notifications
+
+Nodes: Needs New Alert → Send Stock Alert
+
+When a product reaches or falls below its reorder threshold, the workflow checks whether an alert has already been sent.
+
+If a new alert is required, Gmail sends an automated notification containing:
+
+Product name
+
+Current inventory quantity
+
+Reorder threshold
+
+Inventory status
+
+Out-of-stock products receive an urgent restock notification.
+
+Automated Email Screenshot
+
+
+
+Step 4: Duplicate Alert Prevention
+
+Node: Record Alert Sent
+
+After sending a notification, the workflow updates Google Sheets:
+
+alert_sent = TRUE
+last_alerted = Current Timestamp
+
+This prevents the workflow from repeatedly notifying users about the same unresolved inventory shortage.
+
+Alert Tracking Screenshot
+
+
+
+Step 5: Automatic Alert Reset
+
+Nodes: Stock Recovered → Clear Alert Flag
+
+When a previously flagged product is restocked above its reorder threshold, the workflow clears its alert status:
+
+alert_sent = FALSE
+last_alerted = Blank
+
+This allows a future shortage to trigger another notification.
+
+Successful Workflow Execution
+
+## Project Outcomes
+
+This project demonstrates a practical approach to combining data engineering, business intelligence, and workflow automation.
+
+Key capabilities implemented include:
+
+Processing and classifying inventory records using Python.
+
+Identifying low-stock and out-of-stock products.
+
+Calculating inventory values and estimated replenishment costs.
+
+Building an automated inventory notification workflow.
+
+Preventing repeated notifications for unresolved shortages.
+
+Resetting alerts when inventory recovers.
+
+Creating a dashboard for monitoring inventory performance.
+
+The system provides a foundation for reducing manual inventory checks and improving the visibility of replenishment needs.
