@@ -1,0 +1,742 @@
+{
+  "name": "Daily Inventory Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "ba5d8374-ef7f-43ba-912e-10b6fb35219d",
+      "name": "Daily Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1nf-GD1MJjiY-wpQ34RPKrJ6sWrVHDnszrWiqk2r2vUw",
+          "mode": "list",
+          "cachedResultName": "Inventory Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nf-GD1MJjiY-wpQ34RPKrJ6sWrVHDnszrWiqk2r2vUw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 160526109,
+          "mode": "list",
+          "cachedResultName": "Inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nf-GD1MJjiY-wpQ34RPKrJ6sWrVHDnszrWiqk2r2vUw/edit#gid=160526109"
+        },
+        "options": {}
+      },
+      "id": "120937f6-d24a-42cf-b979-c3c23c2c06f5",
+      "name": "Read Inventory",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        240,
+        80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "h7GME79WDoO3kGqX",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "calculated_status",
+              "type": "string",
+              "value": "={{ Number($json.quantity) <= 0 ? 'Out of Stock' : (Number($json.quantity) <= Number($json.reorder_point) ? 'Low Stock' : 'In Stock') }}"
+            },
+            {
+              "id": "a2",
+              "name": "needs_alert",
+              "type": "boolean",
+              "value": "={{ Number($json.quantity) <= Number($json.reorder_point) && String($json.alert_sent).toUpperCase() !== 'TRUE' }}"
+            },
+            {
+              "id": "a3",
+              "name": "needs_reset",
+              "type": "boolean",
+              "value": "={{ Number($json.quantity) > Number($json.reorder_point) && String($json.alert_sent).toUpperCase() === 'TRUE' }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "59fd6bf6-a8a9-42c3-8b10-cf013a3415d3",
+      "name": "Evaluate Stock",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        496,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.needs_alert }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7ee8db1d-9364-4d19-ab8c-3d2355396d44",
+      "name": "Needs New Alert",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "alexisamadi22@gmail.com",
+        "subject": "={{ $json.calculated_status === 'Out of Stock' ? 'URGENT: Restock needed - ' : 'Low stock alert - ' }}{{ $json.product_name }}",
+        "message": "=<h3>{{ $json.calculated_status === 'Out of Stock' ? 'URGENT: Out of stock - restock immediately' : 'Low stock - please reorder' }}</h3><ul><li><b>Product:</b> {{ $json.product_name }}</li><li><b>Current quantity:</b> {{ $json.quantity }}</li><li><b>Reorder point:</b> {{ $json.reorder_point }}</li><li><b>Status:</b> {{ $json.calculated_status }}</li></ul>",
+        "options": {}
+      },
+      "id": "3d083c42-f67d-4b7f-b075-2b4516e2da67",
+      "name": "Send Stock Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        112
+      ],
+      "webhookId": "ca9a2d12-1bf3-40e0-9c41-55d0838d87a6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7do0nnklz0q0aXCH",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1nf-GD1MJjiY-wpQ34RPKrJ6sWrVHDnszrWiqk2r2vUw",
+          "cachedResultName": "Inventory Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nf-GD1MJjiY-wpQ34RPKrJ6sWrVHDnszrWiqk2r2vUw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 160526109,
+          "mode": "list",
+          "cachedResultName": "Inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nf-GD1MJjiY-wpQ34RPKrJ6sWrVHDnszrWiqk2r2vUw/edit#gid=160526109"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "product_id": "={{ $('Needs New Alert').item.json.product_id }}",
+            "alert_sent": "TRUE",
+            "last_alerted": "={{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }}"
+          },
+          "matchingColumns": [
+            "product_id"
+          ],
+          "schema": [
+            {
+              "id": "product_id",
+              "displayName": "product_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "product_name",
+              "displayName": "product_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier",
+              "displayName": "supplier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_email",
+              "displayName": "supplier_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "quantity",
+              "displayName": "quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reorder_point",
+              "displayName": "reorder_point",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "unit_cost",
+              "displayName": "unit_cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "inventory_value",
+              "displayName": "inventory_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "stock_status",
+              "displayName": "stock_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "suggested_order_qty",
+              "displayName": "suggested_order_qty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reorder_cost",
+              "displayName": "reorder_cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "has_data_issue",
+              "displayName": "has_data_issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "alert_required",
+              "displayName": "alert_required",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_checked",
+              "displayName": "last_checked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "alert_sent",
+              "displayName": "alert_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_alerted",
+              "displayName": "last_alerted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b11bfba7-fbeb-41ea-b2e8-6ff00f7a7f9c",
+      "name": "Record Alert Sent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1264,
+        112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "h7GME79WDoO3kGqX",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.needs_reset }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b33a6f4b-af52-4a50-aaa2-d88281ab79b6",
+      "name": "Stock Recovered",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1nf-GD1MJjiY-wpQ34RPKrJ6sWrVHDnszrWiqk2r2vUw",
+          "mode": "list",
+          "cachedResultName": "Inventory Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nf-GD1MJjiY-wpQ34RPKrJ6sWrVHDnszrWiqk2r2vUw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 160526109,
+          "mode": "list",
+          "cachedResultName": "Inventory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1nf-GD1MJjiY-wpQ34RPKrJ6sWrVHDnszrWiqk2r2vUw/edit#gid=160526109"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "product_id": "={{ $json.product_id }}",
+            "alert_sent": "FALSE",
+            "last_alerted": ""
+          },
+          "matchingColumns": [
+            "product_id"
+          ],
+          "schema": [
+            {
+              "id": "product_id",
+              "displayName": "product_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "product_name",
+              "displayName": "product_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "supplier",
+              "displayName": "supplier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "supplier_email",
+              "displayName": "supplier_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "quantity",
+              "displayName": "quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reorder_point",
+              "displayName": "reorder_point",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "unit_cost",
+              "displayName": "unit_cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "inventory_value",
+              "displayName": "inventory_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "stock_status",
+              "displayName": "stock_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "suggested_order_qty",
+              "displayName": "suggested_order_qty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reorder_cost",
+              "displayName": "reorder_cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "has_data_issue",
+              "displayName": "has_data_issue",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "alert_required",
+              "displayName": "alert_required",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_checked",
+              "displayName": "last_checked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "alert_sent",
+              "displayName": "alert_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "last_alerted",
+              "displayName": "last_alerted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9be46460-c861-4b54-bf67-12cbbac80298",
+      "name": "Clear Alert Flag",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1824,
+        128
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "h7GME79WDoO3kGqX",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily Check": {
+      "main": [
+        [
+          {
+            "node": "Read Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Inventory": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Stock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Stock": {
+      "main": [
+        [
+          {
+            "node": "Needs New Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Stock Recovered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs New Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Stock Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Stock Alert": {
+      "main": [
+        [
+          {
+            "node": "Record Alert Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stock Recovered": {
+      "main": [
+        [
+          {
+            "node": "Clear Alert Flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "953c3174-0ff7-44f3-b54e-ad7017d91829",
+  "meta": {
+    "instanceId": "f10cc20ef11f0fbf39471bf5774f968e9e02ceabef14192a4484d37762ee8e28"
+  },
+  "nodeGroups": [
+    {
+      "id": "e4ad9922-a3fb-4ae3-997e-9b377608f1b9",
+      "name": "Assess stock levels",
+      "nodeIds": [
+        "120937f6-d24a-42cf-b979-c3c23c2c06f5",
+        "59fd6bf6-a8a9-42c3-8b10-cf013a3415d3"
+      ],
+      "description": "Reads every product row from the inventory sheet and classifies it as In Stock, Low Stock or Out of Stock"
+    },
+    {
+      "id": "e8871906-9a7e-43c6-8a7f-b4c8f893c3ba",
+      "name": "Send stock alerts",
+      "nodeIds": [
+        "7ee8db1d-9364-4d19-ab8c-3d2355396d44",
+        "3d083c42-f67d-4b7f-b075-2b4516e2da67",
+        "b11bfba7-fbeb-41ea-b2e8-6ff00f7a7f9c"
+      ],
+      "description": "Emails new Low/Out of Stock issues, then marks the row as alerted so it is not repeated"
+    },
+    {
+      "id": "91acaabf-6760-4eb8-bed9-0477c4331f30",
+      "name": "Reset resolved items",
+      "nodeIds": [
+        "b33a6f4b-af52-4a50-aaa2-d88281ab79b6",
+        "9be46460-c861-4b54-bf67-12cbbac80298"
+      ],
+      "description": "Clears the alerted flag for restocked products so future shortages alert again"
+    }
+  ],
+  "id": "Gt5ydiGX5bbUd5Ma",
+  "tags": []
+}
